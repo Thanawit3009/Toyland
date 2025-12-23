@@ -1,6 +1,6 @@
-/* General Styling */
+/* ================== พื้นหลัง + หัวข้อ ================== */
 .collections-approval {
-  padding: 20px;
+  padding: 24px;
   background-color: #f3f4f6;
   min-height: 100vh;
   box-sizing: border-box;
@@ -13,85 +13,206 @@
   margin-bottom: 20px;
 }
 
-/* Table Styling */
-table {
+/* ================== ตารางอนุมัติ ================== */
+.collections-approval table {
   width: 100%;
   border-collapse: collapse;
-  table-layout: fixed; /* คอลัมน์มีขนาดคงที่ */
+  table-layout: fixed;        /* ป้องกันคอลัมน์ยืดเกินไป */
   word-wrap: break-word;
   margin-top: 20px;
-  background-color: white;
+  background-color: #ffffff;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   border-radius: 8px;
   overflow: hidden;
 }
 
-thead {
+.collections-approval thead {
   background-color: #6b21a8;
   color: white;
 }
 
-th,
-td {
+.collections-approval th,
+.collections-approval td {
   border: 1px solid #ddd;
-  padding: 15px;
+  padding: 12px;
   text-align: center;
   font-size: 14px;
   vertical-align: middle;
 }
 
-tr:nth-child(even) td {
+/* เว้นให้หัวตารางตัวหนานิดนึง */
+.collections-approval th {
+  font-weight: 600;
+}
+
+.collections-approval tr:nth-child(even) td {
   background-color: #eef2f7;
 }
 
-tr:nth-child(odd) td {
+.collections-approval tr:nth-child(odd) td {
   background-color: #f9f9f9;
 }
 
-/* Image Styling */
-.collection-image,
-.qr-code-image {
-  width: 100px;
-  height: 100px;
+/* กำหนดความกว้างคร่าวๆ ของแต่ละคอลัมน์ให้ QR ไม่กินพื้นที่ทั้งจอ */
+.collections-approval th:nth-child(1) { width: 12%; } /* ชื่อคอลเล็กชัน */
+.collections-approval th:nth-child(2) { width: 12%; } /* ภาพ */
+.collections-approval th:nth-child(3) { width: 26%; } /* QR */
+.collections-approval th:nth-child(4),
+.collections-approval th:nth-child(5),
+.collections-approval th:nth-child(6),
+.collections-approval th:nth-child(7),
+.collections-approval th:nth-child(8) {
+  width: 10%;
+}
+
+/* ================== รูปภาพ ================== */
+
+/* ภาพคอลเล็กชัน */
+.collections-approval .collection-image {
+  width: 90px;
+  height: 90px;
   object-fit: cover;
   border: 1px solid #ddd;
   border-radius: 8px;
+  display: block;
+  margin: 0 auto;
 }
 
-/* Button Styling */
-td > div {
+/* ภาพ QR – ที่ JSX ใช้ className="qr-image" */
+.collections-approval .qr-image,
+.collections-approval .qr-code-image {   /* เผื่อชื่อเก่า */
+  max-width: 260px;
+  max-height: 260px;
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  display: block;
+  margin: 0 auto;
+}
+
+/* ================== ปุ่มอนุมัติ / ปฏิเสธ ================== */
+
+/* cell ปุ่ม (ถ้าใน JSX ใส่ className="action-cell" ให้ td ปุ่ม จะจัดกลางสวยขึ้น) */
+.collections-approval td.action-cell {
+  padding: 10px;
+}
+
+/* คอลัมน์จัดการ — เพิ่มความกว้างให้พอสำหรับ 2 ปุ่ม */
+.collections-approval th:last-child,
+.collections-approval td:last-child {
+  width: 150px !important;   /* จากเดิม 80-100px → เพิ่มเป็น 150px */
+}
+
+/* กล่องปุ่มใน TD */
+.collections-approval .action-buttons {
   display: flex;
-  justify-content: center;
-  gap: 10px; /* ระยะห่างระหว่างปุ่ม */
+  flex-direction: row;     /* ปุ่มอยู่แนวนอน */
+  justify-content: center; /* จัดกลาง */
+  align-items: center;
+  gap: 12px;               /* ระยะห่างระหว่างปุ่ม */
+  width: 100%;
 }
 
-button {
-  margin: 0;
-  padding: 8px 15px;
-  border: none;
-  border-radius: 5px;
-  color: white;
-  cursor: pointer;
+/* ปุ่มอนุมัติ / ปฏิเสธ */
+.collections-approval .approve-button,
+.collections-approval .reject-button {
+  padding: 8px 14px;
+  min-width: 70px;         /* ปุ่มไม่เล็กเกิน */
+  text-align: center;
+  border-radius: 6px;
   font-size: 14px;
-  transition: background-color 0.3s ease, transform 0.2s ease;
-}
-
-button:hover {
-  transform: scale(1.05);
+  color: white;
+  border: none;
+  cursor: pointer;
+  transition: 0.2s ease;
 }
 
 .approve-button {
-  background-color: #4caf50;
+  background-color: #22c55e;
 }
 
 .approve-button:hover {
-  background-color: #45a049;
+  background-color: #16a34a;
 }
 
 .reject-button {
-  background-color: #f44336;
+  background-color: #ef4444;
 }
 
 .reject-button:hover {
-  background-color: #e53935;
+  background-color: #dc2626;
+}
+
+
+/* ปุ่มพื้นฐานในตารางนี้เท่านั้น */
+.collections-approval td button {
+  margin: 0;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  color: #ffffff;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s ease, transform 0.15s ease;
+  min-width: 90px;
+}
+
+.collections-approval td button:hover {
+  transform: scale(1.05);
+}
+
+/* ปุ่มอนุมัติ */
+.collections-approval .approve-button {
+  background-color: #22c55e;        /* เขียวสด */
+}
+
+.collections-approval .approve-button:hover {
+  background-color: #16a34a;
+}
+
+/* ปุ่มปฏิเสธ */
+.collections-approval .reject-button {
+  background-color: #ef4444;        /* แดงสด */
+}
+
+.collections-approval .reject-button:hover {
+  background-color: #dc2626;
+}
+
+/* ================== ข้อความแจ้งเตือนด้านล่าง ================== */
+.collections-approval .note {
+  margin-top: 16px;
+  font-size: 13px;
+  color: #4b5563;
+}
+
+.collections-approval .note span {
+  color: #f97316;
+  font-weight: 600;
+}
+
+/* ================== ปุ่มสแกน QR ================== */
+.collections-approval .scan-qr-button {
+  background-color: #6b21a8;   /* ม่วงเข้ม Toyland */
+  color: #ffffff;
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: none;
+  font-size: 13px;
+  cursor: pointer;
+  margin-top: 6px;
+  min-width: 90px;
+  transition: background-color 0.2s ease, transform 0.15s ease;
+}
+
+.collections-approval .scan-qr-button:hover {
+  background-color: #581c87;   /* ม่วงเข้มขึ้น */
+  transform: scale(1.05);
+}
+
+.collections-approval .scan-qr-button:active {
+  background-color: #4b156b;
+  transform: scale(0.97);
 }

@@ -27,3 +27,6 @@ npm-debug.log
 
 # Ignore ไฟล์ของ VS Code
 .vscode/
+
+# Django media
+backend/media/

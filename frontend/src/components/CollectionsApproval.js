@@ -1,200 +1,319 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { refreshAccessToken, isAdmin } from "../utils/auth";
-import { BrowserQRCodeReader } from "@zxing/browser";
 import "./CollectionsApproval.css";
+import jsQR from "jsqr";
+
 
 const CollectionsApproval = () => {
   const [collections, setCollections] = useState([]);
-  const [error, setError] = useState({});
+  const [loading, setLoading] = useState(false);
+  const [submittingId, setSubmittingId] = useState(null);
+  const [error, setError] = useState("");
 
   const fetchPendingCollections = useCallback(async () => {
+    setLoading(true);
+    setError("");
     try {
-      const token = localStorage.getItem("token");
+      let token = localStorage.getItem("token");
       if (!token) throw new Error("Token not found. Please log in again.");
 
-      const response = await fetch("http://localhost:8000/api/mycollections/admin/collections/", {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: "application/json",
-        },
-      });
+      let res = await fetch(
+        "http://localhost:8000/api/mycollections/admin/collections/",
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json",
+          },
+        }
+      );
 
-      if (response.status === 401) {
-        console.log("Token expired. Refreshing...");
-        await refreshAccessToken();
-        return fetchPendingCollections();
+      if (res.status === 401) {
+        token = await refreshAccessToken();
+        res = await fetch(
+          "http://localhost:8000/api/mycollections/admin/collections/",
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              Accept: "application/json",
+            },
+          }
+        );
       }
 
-      if (!response.ok) throw new Error(`Failed to fetch collections. Status: ${response.status}`);
-
-      const data = await response.json();
-      setCollections(data);
-    } catch (error) {
-      console.error("Error fetching collections:", error);
-      setError({ global: "เกิดข้อผิดพลาดในการดึงข้อมูลคอลเล็กชัน" });
+      if (!res.ok) throw new Error(`Failed to fetch. ${res.status}`);
+      const data = await res.json();
+      setCollections(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error("Error fetching collections:", err);
+      setError("เกิดข้อผิดพลาดในการดึงข้อมูลคอลเล็กชัน");
+    } finally {
+      setLoading(false);
     }
   }, []);
 
   useEffect(() => {
     if (!isAdmin()) {
-      console.error("Unauthorized: User is not an admin.");
-      setError({ global: "คุณไม่ได้รับอนุญาตให้ดูข้อมูลนี้" });
+      setError("คุณไม่ได้รับอนุญาตให้ดูข้อมูลนี้");
       return;
     }
     fetchPendingCollections();
   }, [fetchPendingCollections]);
 
   const handleApprove = async (id) => {
+    if (!window.confirm("ยืนยันอนุมัติคอลเล็กชันนี้?")) return;
+    setSubmittingId(id);
     try {
-      const token = localStorage.getItem("token");
-      const response = await fetch(`http://localhost:8000/api/mycollections/admin/collections/${id}/`, {
-        method: "PUT",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: "application/json",
-        },
-      });
+      let token = localStorage.getItem("token");
+      let res = await fetch(
+        `http://localhost:8000/api/mycollections/admin/collections/${id}/`,
+        {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json",
+          },
+        }
+      );
 
-      if (!response.ok) throw new Error(`Failed to approve collection. Status: ${response.status}`);
+      if (res.status === 401) {
+        token = await refreshAccessToken();
+        res = await fetch(
+          `http://localhost:8000/api/mycollections/admin/collections/${id}/`,
+          {
+            method: "PUT",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              Accept: "application/json",
+            },
+          }
+        );
+      }
 
+      if (!res.ok) throw new Error(`Approve failed: ${res.status}`);
       alert("อนุมัติคอลเล็กชันสำเร็จ");
       fetchPendingCollections();
-    } catch (error) {
-      console.error("Error approving collection:", error);
-      setError({ global: "เกิดข้อผิดพลาดในการอนุมัติคอลเล็กชัน" });
+    } catch (err) {
+      console.error("Error approving collection:", err);
+      setError("เกิดข้อผิดพลาดในการอนุมัติคอลเล็กชัน");
+    } finally {
+      setSubmittingId(null);
     }
   };
 
   const handleReject = async (id) => {
+    if (!window.confirm("ยืนยันปฏิเสธและลบคำขอนี้?")) return;
+    setSubmittingId(id);
     try {
-      const token = localStorage.getItem("token");
-      const response = await fetch(`http://localhost:8000/api/mycollections/admin/collections/${id}/`, {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: "application/json",
-        },
-      });
+      let token = localStorage.getItem("token");
+      let res = await fetch(
+        `http://localhost:8000/api/mycollections/admin/collections/${id}/`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json",
+          },
+        }
+      );
 
-      if (!response.ok) throw new Error(`Failed to reject collection. Status: ${response.status}`);
+      if (res.status === 401) {
+        token = await refreshAccessToken();
+        res = await fetch(
+          `http://localhost:8000/api/mycollections/admin/collections/${id}/`,
+          {
+            method: "DELETE",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              Accept: "application/json",
+            },
+          }
+        );
+      }
 
+      if (!res.ok) throw new Error(`Reject failed: ${res.status}`);
       alert("ปฏิเสธคอลเล็กชันสำเร็จ");
       fetchPendingCollections();
-    } catch (error) {
-      console.error("Error rejecting collection:", error);
-      setError({ global: "เกิดข้อผิดพลาดในการปฏิเสธคอลเล็กชัน" });
+    } catch (err) {
+      console.error("Error rejecting collection:", err);
+      setError("เกิดข้อผิดพลาดในการปฏิเสธคอลเล็กชัน");
+    } finally {
+      setSubmittingId(null);
     }
   };
+
+  const handleScanQr = async (qrPath) => {
+    if (!qrPath) {
+      alert("ไม่มีไฟล์ QR ให้สแกน");
+      return;
+    }
+
+    const imageUrl = `http://localhost:8000${qrPath}`;
+
+    try {
+      // โหลดรูป
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.src = imageUrl;
+
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
+      });
+
+      // วาดลง canvas ชั่วคราว
+      const canvas = document.createElement("canvas");
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0);
+
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+      // ใช้ jsQR อ่าน
+      const code = jsQR(imageData.data, imageData.width, imageData.height);
+
+      if (!code) {
+        alert("ไม่สามารถอ่าน QR จากรูปนี้ได้");
+        return;
+      }
+
+      const text = code.data?.trim() || "";
+
+      if (!text) {
+        alert("สแกนได้แล้ว แต่ไม่มีข้อมูลใน QR");
+        return;
+      }
+
+      // ถ้าเป็นลิงก์ให้ถามว่าจะเปิดเลยไหม
+      if (/^https?:\/\//i.test(text)) {
+        const ok = window.confirm(
+          `พบลิงก์จาก QR:\n\n${text}\n\nต้องการเปิดในแท็บใหม่หรือไม่?`
+        );
+        if (ok) {
+          window.open(text, "_blank", "noopener,noreferrer");
+        }
+      } else {
+        // ไม่ใช่ลิงก์ เป็นข้อความธรรมดา
+        alert(`ผลจากการสแกน QR:\n\n${text}`);
+      }
+    } catch (err) {
+      console.error("Error scanning QR:", err);
+      alert("เกิดข้อผิดพลาดในการสแกน QR");
+    }
+  };
+
+
 
   return (
     <div className="collections-approval">
       <h1>คอลเล็กชันที่รอการอนุมัติ</h1>
-      {error.global && <p className="error">{error.global}</p>}
-      <table>
-        <thead>
-          <tr>
-            <th>ชื่อคอลเล็กชัน</th>
-            <th>รูปคอลเล็กชัน</th>
-            <th colSpan={2}>QR Code + URL</th>
-            <th>ข้อความ ID บรรทัดบน</th>
-            <th>ข้อความ ID บรรทัดล่าง</th>
-            <th>การจัดการ</th>
-          </tr>
-        </thead>
-        <tbody>
-          {collections.length > 0 ? (
-            collections.map((collection) => (
-              <tr key={collection.id}>
-                <td>{collection.name || "ไม่มีข้อมูล"}</td>
-                <td>
-                  <img
-                    src={`http://localhost:8000${collection.image}`}
-                    alt={`รูป ${collection.name}`}
-                    className="collection-image"
-                    onError={(e) => (e.target.src = "default-collection.jpg")}
-                  />
-                </td>
-                <td colSpan={2}>
-                  <QRDisplayAndScan qrUrl={`http://localhost:8000${collection.qr_code}`} />
-                </td>
-                <td>{collection.topMessage || "ไม่มีข้อความ"}</td>
-                <td>{collection.bottomMessage || "ไม่มีข้อความ"}</td>
-                <td>
-                  <button className="approve-button" onClick={() => handleApprove(collection.id)}>
-                    อนุมัติ
-                  </button>
-                  <button className="reject-button" onClick={() => handleReject(collection.id)}>
-                    ปฏิเสธ
-                  </button>
+      {error && <p className="error">{error}</p>}
+
+      {loading ? (
+        <p>กำลังโหลดข้อมูล...</p>
+      ) : (
+        <table>
+          <thead>
+            <tr>
+              <th>ชื่อคอลเล็กชัน</th>
+              <th>ภาพ</th>
+              <th>QR ที่อัปโหลด</th>
+              <th>ผู้ส่งคำขอ</th>
+              <th>ArtToy ID</th>
+              <th>จัดการ</th>
+            </tr>
+          </thead>
+          <tbody>
+            {collections.length > 0 ? (
+              collections.map((c) => (
+                <tr key={c.id}>
+                  {/* ชื่อคอลเล็กชัน */}
+                  <td>{c.name || "—"}</td>
+
+                  {/* ภาพคอลเล็กชัน */}
+                  <td>
+                    {c.image ? (
+                      <img
+                        src={`http://localhost:8000${c.image}`}
+                        alt={c.name}
+                        className="collection-image"
+                        onError={(e) =>
+                          (e.target.src = "default-collection.jpg")
+                        }
+                      />
+                    ) : (
+                      "—"
+                    )}
+                  </td>
+
+                  {/* QR ที่อัปโหลด */}
+                  <td>
+                    {c.qr_code ? (
+                      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+                        <img
+                          src={`http://localhost:8000${c.qr_code}`}
+                          alt="QR"
+                          className="qr-code-image"
+                          onError={(e) => (e.target.src = "default-qr-code.jpg")}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleScanQr(c.qr_code)}
+                          className="scan-qr-button"
+                        >
+                          สแกน QR
+                        </button>
+                      </div>
+                    ) : (
+                      "—"
+                    )}
+                  </td>
+
+                  {/* ผู้ส่งคำขอ (ตอนนี้ serializer คืน user เป็น id) */}
+                  <td>{c.user || "—"}</td>
+
+                  {/* ArtToy ID เดียว */}
+                  <td>{c.arttoy_id || "—"}</td>
+
+                  {/* ปุ่มจัดการ */}
+                  <td>
+                    <button
+                      className="approve-button"
+                      onClick={() => handleApprove(c.id)}
+                      disabled={submittingId === c.id}
+                    >
+                      อนุมัติ
+                    </button>
+                    <button
+                      className="reject-button"
+                      onClick={() => handleReject(c.id)}
+                      disabled={submittingId === c.id}
+                    >
+                      ปฏิเสธ
+                    </button>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan="6" style={{ textAlign: "center" }}>
+                  ไม่มีคอลเล็กชันที่ต้องตรวจสอบ
                 </td>
               </tr>
-            ))
-          ) : (
-            <tr>
-              <td colSpan="7" style={{ textAlign: "center" }}>
-                ไม่มีคอลเล็กชันที่ต้องตรวจสอบ
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
-    </div>
-  );
-};
+            )}
+          </tbody>
+        </table>
+      )}
 
-const QRDisplayAndScan = ({ qrUrl }) => {
-  const imgRef = useRef(null);
-  const [qrResult, setQrResult] = useState("");
-  const [error, setError] = useState("");
-
-  useEffect(() => {
-    const codeReader = new BrowserQRCodeReader();
-
-    const scan = async () => {
-      try {
-        const result = await codeReader.decodeFromImageElement(imgRef.current);
-        setQrResult(result.getText());
-        setError("");
-      } catch (err) {
-        console.error("QR scan error:", err.message);
-        setQrResult("");
-        setError("ไม่สามารถอ่าน QR ได้");
-      }
-    };
-
-    if (imgRef.current) {
-      if (imgRef.current.complete) {
-        scan();
-      } else {
-        imgRef.current.onload = scan;
-      }
-    }
-  }, [qrUrl]);
-
-  return (
-    <div style={{ fontSize: "13px", textAlign: "center" }}>
-      <img
-        ref={imgRef}
-        src={qrUrl}
-        crossOrigin="anonymous" // ✅ สำคัญมากสำหรับการสแกนภาพข้าม origin
-        alt="QR Code"
-        style={{ maxWidth: "120px" }}
-        onError={(e) => (e.target.src = "default-qr-code.jpg")}
-      />
-      <div style={{ marginTop: "5px" }}>
-        <strong>QR ลิงก์:</strong>{" "}
-        {qrResult ? (
-          <a href={qrResult} target="_blank" rel="noreferrer">
-            {qrResult}
-          </a>
-        ) : (
-          <span>{error || "กำลังสแกน..."}</span>
-        )}
+      <div style={{ marginTop: 16 }}>
+        <p>
+          ⚠️ หน้านี้ใช้สำหรับ <b>อนุมัติคำขอเพิ่มคอลเล็กชัน</b> เท่านั้น
+        </p>
       </div>
     </div>
   );
-
 };
 
 export default CollectionsApproval;

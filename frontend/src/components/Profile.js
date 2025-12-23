@@ -117,7 +117,18 @@ const Profile = () => {
                 <strong>เบอร์:</strong> {userData.phone_number || 'ไม่ระบุ'}
               </p>
             </div>
-            <button className="edit-profile-btn" onClick={() => setEditing(true)}>
+            <button
+              className="edit-profile-btn"
+              onClick={() => {
+                setFormData({
+                  first_name: userData.first_name || "",
+                  last_name: userData.last_name || "",
+                  phone_number: userData.phone_number || "",
+                  profile_picture: null,
+                });
+                setEditing(true);
+              }}
+            >
               แก้ไขข้อมูล
             </button>
           </>
